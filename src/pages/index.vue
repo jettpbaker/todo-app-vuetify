@@ -1,6 +1,8 @@
 <script setup>
   import { computed, onMounted, ref } from 'vue';
   import Header from '@/components/Header.vue';
+  import NoTodosAlert from '@/components/alerts/NoTodos.vue';
+  import NoMatchingTodos from '@/components/alerts/NoMatchingTodos.vue';
 
   const newTodoText = ref('');
   const todos = ref([]);
@@ -241,33 +243,10 @@
               </v-list-item>
             </transition-group>
           </div>
-          <v-alert
-            v-else
-            class="mt-4"
-            density="compact"
-            icon="mdi-filter-variant-remove"
-            type="info"
-            variant="tonal"
-          >
-            No todos match the current filter.
-          </v-alert>
+          <NoMatchingTodos v-else />
         </v-card>
-
         <!-- Empty State for No Todos -->
-        <v-alert
-          v-else
-          class="mx-auto mt-8 text-center"
-          elevation="2"
-          icon="mdi-emoticon-sad-outline"
-          max-width="700"
-          prominent
-          rounded="lg"
-          type="info"
-          variant="tonal"
-        >
-          <div class="text-h6">No todos yet!</div>
-          <p>Looks like your todo list is empty. Add some tasks above to get started!</p>
-        </v-alert>
+        <NoTodosAlert v-else />
       </v-container>
     </v-main>
 
