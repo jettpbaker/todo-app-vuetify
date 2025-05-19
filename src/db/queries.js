@@ -9,7 +9,7 @@ const MUTATIONS = {
   addTodo: todoText => {
     if (!todoText.trim()) return;
     todos.value.unshift({
-      id: Date.now(),
+      id: crypto.randomUUID(),
       text: todoText.trim(),
       completed: false,
       createdAt: new Date().toISOString(),
