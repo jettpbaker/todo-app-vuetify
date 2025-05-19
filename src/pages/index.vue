@@ -1,13 +1,13 @@
 <script setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { onMounted, ref } from 'vue';
+  import { MUTATIONS, QUERIES } from '@/db/queries';
+  import { useClearCompletedTodos, useCompletedTodosCount, useFilter, useFilteredTodos } from '@/composables/todos'
+  import todos from '@/db/db';
   import Header from '@/components/Header.vue';
   import NoTodosAlert from '@/components/alerts/NoTodos.vue';
   import NoMatchingTodos from '@/components/alerts/NoMatchingTodos.vue';
 
   const newTodoText = ref('');
-  const todos = ref([]);
-  const filter = ref('all'); // 'all', 'active', 'completed'
-
 
   const snackbar = ref({
     show: false,
@@ -18,94 +18,32 @@
     actionColor: 'white',
   });
 
-
-  // Load todos from localStorage on mount
   onMounted(() => {
-    const storedTodos = localStorage.getItem('vuetify-todos-app');
+    const storedTodos = QUERIES.getTodos();
     if (storedTodos) {
-      todos.value = JSON.parse(storedTodos);
+      todos.value = storedTodos;
     }
   });
-
-  const saveTodos = () => {
-    localStorage.setItem('vuetify-todos-app', JSON.stringify(todos.value));
-  };
 
   const showSnackbar = (text, color = 'info', icon = 'mdi-information', timeout = 3000) => {
     snackbar.value = { show: true, text, color, icon, timeout, actionColor: color === 'warning' ? 'black' : 'white' };
   };
 
   const addTodo = () => {
-    if (!newTodoText.value.trim()) return;
-    todos.value.unshift({
-      id: Date.now(),
-      text: newTodoText.value.trim(),
-      completed: false,
-      createdAt: new Date().toISOString(),
-    });
+    MUTATIONS.addTodo(newTodoText.value);
     newTodoText.value = '';
-    saveTodos();
     showSnackbar('Todo added successfully!', 'success', 'mdi-check-circle');
-  };
-
-  const toggleTodo = id => {
-    const todo = todos.value.find(t => t.id === id);
-    if (todo) {
-      // todo.completed is already updated by v-model
-      saveTodos();
-      showSnackbar(
-        todo.completed ? 'Todo marked as complete!' : 'Todo marked as active!',
-        'info',
-        todo.completed ? 'mdi-checkbox-marked-circle-outline' : 'mdi-radiobox-blank'
-      );
-    }
-  };
+  }
 
   const deleteTodo = id => {
-    const todoIndex = todos.value.findIndex(t => t.id === id);
-    if (todoIndex !== -1) {
-      todos.value.splice(todoIndex, 1);
-      saveTodos();
-      showSnackbar('Todo deleted!', 'warning', 'mdi-delete-forever', 4000);
-    }
-  };
+    MUTATIONS.deleteTodo(id)
+    showSnackbar('Todo deleted!', 'warning', 'mdi-delete-forever', 4000);
+  }
 
-  const filteredTodos = computed(() => {
-    const sortedTodos = [...todos.value].sort((a, b) => {
-      // Show incomplete todos first, then sort by creation date (newest first)
-      if (a.completed !== b.completed) {
-        return a.completed ? 1 : -1;
-      }
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-
-    switch (filter.value) {
-      case 'active':
-        return sortedTodos.filter(todo => !todo.completed);
-      case 'completed':
-        return sortedTodos.filter(todo => todo.completed);
-      default: // 'all'
-        return sortedTodos;
-    }
-  });
-
-  const completedTodosCount = computed(() => {
-    return todos.value.filter(todo => todo.completed).length;
-  });
-
-  const clearCompleted = () => {
-    const activeTodos = todos.value.filter(todo => !todo.completed);
-    const numCleared = todos.value.length - activeTodos.length;
-    todos.value = activeTodos;
-    saveTodos();
-    if (numCleared > 0) {
-      showSnackbar(
-        `${numCleared} completed todo(s) cleared!`,
-        'success',
-        'mdi-broom'
-      );
-    }
-  };
+  const toggleTodo = id => {
+    // todo.completed is already updated by v-model, so we just update local storage
+    MUTATIONS.saveTodos(id);
+  }
 </script>
 
 
@@ -163,15 +101,15 @@
             Your Tasks
             <v-spacer />
             <span class="text-caption grey--text">
-              {{ filteredTodos.length }}
-              {{ filter === 'all' ? 'total' : filter }}
+              {{ useFilteredTodos.length }}
+              {{ useFilter === 'all' ? 'total' : useFilter }}
             </span>
           </v-card-title>
 
           <v-row align="center" class="my-2" justify="space-between">
             <v-col cols="12" sm="auto">
               <v-chip-group
-                v-model="filter"
+                v-model="useFilter"
                 mandatory
                 selected-class="text-deep-purple-accent-4 font-weight-bold"
               >
@@ -180,14 +118,14 @@
                 <v-chip filter size="small" value="completed" variant="outlined">Completed</v-chip>
               </v-chip-group>
             </v-col>
-            <v-col v-if="completedTodosCount > 0" class="text-right" cols="12" sm="auto">
+            <v-col v-if="useCompletedTodosCount > 0" class="text-right" cols="12" sm="auto">
               <v-btn
                 color="error"
                 size="small"
                 variant="text"
-                @click="clearCompleted"
+                @click="useClearCompletedTodos"
               >
-                Clear {{ completedTodosCount }} Completed
+                Clear {{ useCompletedTodosCount }} Completed
                 <v-icon end>mdi-delete-sweep-outline</v-icon>
               </v-btn>
             </v-col>
@@ -195,10 +133,10 @@
 
           <v-divider class="mb-4" />
 
-          <div v-if="filteredTodos.length > 0">
+          <div v-if="useFilteredTodos.length > 0">
             <transition-group name="todo-list" tag="div">
               <v-list-item
-                v-for="todo in filteredTodos"
+                v-for="todo in useFilteredTodos"
                 :key="todo.id"
                 class="mb-3 pa-3"
                 :class="{
