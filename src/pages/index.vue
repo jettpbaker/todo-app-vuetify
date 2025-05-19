@@ -1,13 +1,14 @@
 <script setup>
   import { onMounted, ref } from 'vue';
   import { MUTATIONS, QUERIES } from '@/db/queries';
-  import { useClearCompletedTodos, useCompletedTodosCount, useFilter, useFilteredTodos } from '@/composables/todos'
+  import { useTodos } from '@/composables/todos'
   import todos from '@/db/db';
   import Header from '@/components/Header.vue';
   import NoTodosAlert from '@/components/alerts/NoTodos.vue';
   import NoMatchingTodos from '@/components/alerts/NoMatchingTodos.vue';
 
   const newTodoText = ref('');
+  const { clearCompletedTodos, completedTodosCount, filter, filteredTodos } = useTodos();
 
   const snackbar = ref({
     show: false,
@@ -101,15 +102,15 @@
             Your Tasks
             <v-spacer />
             <span class="text-caption grey--text">
-              {{ useFilteredTodos.length }}
-              {{ useFilter === 'all' ? 'total' : useFilter }}
+              {{ filteredTodos.length }}
+              {{ filter === 'all' ? 'total' : filter }}
             </span>
           </v-card-title>
 
           <v-row align="center" class="my-2" justify="space-between">
             <v-col cols="12" sm="auto">
               <v-chip-group
-                v-model="useFilter"
+                v-model="filter"
                 mandatory
                 selected-class="text-deep-purple-accent-4 font-weight-bold"
               >
@@ -118,14 +119,14 @@
                 <v-chip filter size="small" value="completed" variant="outlined">Completed</v-chip>
               </v-chip-group>
             </v-col>
-            <v-col v-if="useCompletedTodosCount > 0" class="text-right" cols="12" sm="auto">
+            <v-col v-if="completedTodosCount > 0" class="text-right" cols="12" sm="auto">
               <v-btn
                 color="error"
                 size="small"
                 variant="text"
-                @click="useClearCompletedTodos"
+                @click="clearCompletedTodos"
               >
-                Clear {{ useCompletedTodosCount }} Completed
+                Clear {{ completedTodosCount }} Completed
                 <v-icon end>mdi-delete-sweep-outline</v-icon>
               </v-btn>
             </v-col>
@@ -133,10 +134,10 @@
 
           <v-divider class="mb-4" />
 
-          <div v-if="useFilteredTodos.length > 0">
+          <div v-if="filteredTodos.length > 0">
             <transition-group name="todo-list" tag="div">
               <v-list-item
-                v-for="todo in useFilteredTodos"
+                v-for="todo in filteredTodos"
                 :key="todo.id"
                 class="mb-3 pa-3"
                 :class="{
