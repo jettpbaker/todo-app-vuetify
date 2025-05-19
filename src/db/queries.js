@@ -16,6 +16,12 @@ const MUTATIONS = {
     });
     MUTATIONS.saveTodos();
   },
+  toggleTodo: id => {
+    const todo = todos.value.find(todo => todo.id === id);
+    if (!todo) return;
+    todo.completed = !todo.completed;
+    MUTATIONS.saveTodos();
+  },
   deleteTodo: id => {
     todos.value = todos.value.filter(todo => todo.id !== id)
     MUTATIONS.saveTodos();
